@@ -19,7 +19,7 @@ public class SitePageController {
         return "admin";
     }
     @GetMapping("/info")
-    public String info(Principal principal){
-        return principal.getName();
+    public String info(/*Principal principal*/){
+        return "principal.getName()";
     }
 }
