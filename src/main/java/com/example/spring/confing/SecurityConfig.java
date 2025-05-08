@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.disable())
                 .authorizeHttpRequests( auth -> auth
                         .requestMatchers("/api/v1/**").permitAll()
+                        .requestMatchers("/auth/v1/register").permitAll()
+                        .requestMatchers("/auth/v1/authentication").permitAll().anyRequest().authenticated()
 
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

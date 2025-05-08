@@ -15,13 +15,13 @@ public class RegisterDtoValues {
     @NotBlank
     @Size(min = 2, max = 100, message = "Username is bigger then 100 or smaller then 2")
     private String username;
+   @Email(message = "it is incorrect email")
+   private String email;
     @NotBlank
     @Size(min = 7, max = 100, message = "password is bigger than 100 or less 7")
     private  String password;
     @Size(min = 7, max = 100, message = "password is bigger than 100 or less 7")
     private  String ConfirmPassword;
-    @Email(message = "it is incorrect email")
-    private String email;
 
     private Data updatedAt;
 }
