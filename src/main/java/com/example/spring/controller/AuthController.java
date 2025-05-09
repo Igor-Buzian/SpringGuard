@@ -3,6 +3,7 @@ package com.example.spring.controller;
 import com.example.spring.dto.JwtRequest;
 import com.example.spring.dto.RegisterDtoValues;
 import com.example.spring.service.AuthService;
+import com.example.spring.service.CreateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,10 +13,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth/v1")
 public class AuthController {
     private  final AuthService authController;
+    private  final CreateService createNewUser;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterDtoValues registerDtoValues){
-        return authController.createNewUser(registerDtoValues);
+        return createNewUser.createNewUser(registerDtoValues);
     }
     @PostMapping("/authentication")
     public ResponseEntity<?> auth(@RequestBody JwtRequest jwtRequest){
