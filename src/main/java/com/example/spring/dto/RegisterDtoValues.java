@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 
 @Data
@@ -19,10 +20,10 @@ public class RegisterDtoValues {
     @Email(message = "it is incorrect email")
     private String email;
     @NotBlank(message = "Password is need to be")
-    @Size(min = 7, max = 100, message = "password is bigger than 100 or less 7")
+    @Size(min = 7, max = 50, message = "password is bigger than 100 or less 7")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\\\d).{8,}$")
     private String password;
     @NotBlank(message = "Confirm password is need to be")
-    @Size(min = 7, max = 100, message = "password is bigger than 100 or less 7")
     private String ConfirmPassword;
 
 }
