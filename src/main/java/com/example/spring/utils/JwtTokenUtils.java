@@ -33,7 +33,7 @@ public String generateToken(User user){
             .setSubject(user.getEmail())
             .setIssuedAt(new Date())
             .setExpiration(new Date(System.currentTimeMillis()+expiration*1000))
-            .signWith(SignatureAlgorithm.HS256,secret)
+            .signWith(SignatureAlgorithm.HS512,secret)
             .compact();
 }
 
