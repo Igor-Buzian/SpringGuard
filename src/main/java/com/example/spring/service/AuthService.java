@@ -20,16 +20,27 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserService userService;
-    private final UserRepository userRepository;
     private final JwtTokenUtils jwtTokenUtils;
     private final PasswordEncoder passwordEncoder;
+    private final  AccountSecurityService accountSecurityService;
 
     public ResponseEntity<?> authUser(@RequestBody JwtRequest jwtRequest) {
 
         User user = userService.loadLogin(jwtRequest.getEmail());
 
-        if(!passwordEncoder.matches(user.getPassword(), jwtRequest.getPassword())){
-            return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password is Incorrect!"), HttpStatus.FORBIDDEN);
+        if(!user.isEnabled()){
+            return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "This account was Baned"),HttpStatus.FORBIDDEN);
+        }
+
+        if(!passwordEncoder.matches(jwtRequest.getPassword(), user.getPassword())){
+            accountSecurityService.IncrementFailedAttempts(user);
+            if(accountSecurityService.isAccountLocked(user)){
+                return  new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"), HttpStatus.FORBIDDEN);
+
+            }
+            else {
+                return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password is Incorrect! You Have "+user.getFailedAttempts()+"/3 attempts"), HttpStatus.FORBIDDEN);
+            }
         }
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(

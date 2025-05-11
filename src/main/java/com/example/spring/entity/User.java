@@ -16,7 +16,6 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -38,6 +37,12 @@ public class User implements UserDetails {
     @Column(name = "updated_at")
     public LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "failed_attempts", nullable = false, columnDefinition = "integer default 0")
+    private int failedAttempts;
+
+    @Column(name = "lock_time", columnDefinition = "timestamp")
+    private LocalDateTime lockTime;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
@@ -47,15 +52,9 @@ public class User implements UserDetails {
 
     private Set<Role> roles;
 
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return enabled;
     }
 
 }

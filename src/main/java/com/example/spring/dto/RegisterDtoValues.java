@@ -21,7 +21,7 @@ public class RegisterDtoValues {
     private String email;
     @NotBlank(message = "Password is need to be")
     @Size(min = 7, max = 50, message = "password is bigger than 100 or less 7")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\\\d).{8,}$")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$")
     private String password;
     @NotBlank(message = "Confirm password is need to be")
     private String ConfirmPassword;
