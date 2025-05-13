@@ -4,6 +4,7 @@ import com.example.spring.dto.JwtRequest;
 import com.example.spring.dto.RegisterDtoValues;
 import com.example.spring.service.AuthService;
 import com.example.spring.service.CreateService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +21,8 @@ public class AuthController {
         return createNewUser.createNewUser(registerDtoValues);
     }
     @PostMapping("/authentication")
-    public ResponseEntity<?> auth(@RequestBody JwtRequest jwtRequest){
-        return authController.authUser(jwtRequest);
+    public ResponseEntity<?> auth(@RequestBody JwtRequest jwtRequest, HttpServletRequest request){
+        return authController.authUser(jwtRequest, request);
     }
     @GetMapping("/admin1")
     public String admin(){

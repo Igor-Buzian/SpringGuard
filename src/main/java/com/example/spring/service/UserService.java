@@ -15,6 +15,7 @@ public class UserService {
     private final RoleRepository roleRepository;
 
         public User loadLogin(String login){
+
             return userRepository.findByEmail(login)
                     .orElseThrow(() -> new UsernameNotFoundException("Not found user with name "+login));
         }

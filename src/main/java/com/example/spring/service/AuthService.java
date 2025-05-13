@@ -5,6 +5,7 @@ import com.example.spring.entity.User;
 import com.example.spring.exeption.InfoExeption;
 import com.example.spring.repository.UserRepository;
 import com.example.spring.utils.JwtTokenUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,14 +24,31 @@ public class AuthService {
     private final JwtTokenUtils jwtTokenUtils;
     private final PasswordEncoder passwordEncoder;
     private final  AccountSecurityService accountSecurityService;
+    private  final  LoginAttemptService loginAttemptService;
+    private final UserRepository userRepository;
 
-    public ResponseEntity<?> authUser(@RequestBody JwtRequest jwtRequest) {
+
+    public ResponseEntity<?> authUser(@RequestBody JwtRequest jwtRequest, HttpServletRequest request) {
+        if(!userRepository.existsByEmail(jwtRequest.getEmail())){
+
+            String ip = request.getRemoteAddr();
+            loginAttemptService.loginFailed(ip);
+            if (loginAttemptService.isBloked(ip)) {
+                return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"),HttpStatus.FORBIDDEN);
+            }
+
+            return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password or login is Incorrect!"),HttpStatus.FORBIDDEN);
+        }
 
         User user = userService.loadLogin(jwtRequest.getEmail());
 
         if(!user.isEnabled()){
             return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "This account was Baned"),HttpStatus.FORBIDDEN);
         }
+
+        String ip = request.getRemoteAddr();
+
+        if(loginAttemptService.isBloked(ip)) return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"),HttpStatus.FORBIDDEN);
 
         if(!passwordEncoder.matches(jwtRequest.getPassword(), user.getPassword())){
             accountSecurityService.IncrementFailedAttempts(user);
@@ -39,9 +57,10 @@ public class AuthService {
 
             }
             else {
-                return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password is Incorrect! You Have "+user.getFailedAttempts()+"/3 attempts"), HttpStatus.FORBIDDEN);
+                return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password or login is Incorrect! You Have "+user.getFailedAttempts()+"/3 attempts"), HttpStatus.FORBIDDEN);
             }
         }
+        loginAttemptService.loginSuccess(ip);
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 jwtRequest.getEmail(), jwtRequest.getPassword()

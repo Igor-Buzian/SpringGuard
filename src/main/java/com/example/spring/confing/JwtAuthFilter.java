@@ -42,8 +42,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             ;
             User user = userService.loadLogin(currentUserEmail);
 
-            // String currentRole = jwtTokenUtils.getRole(token);
-            //  String roleName = userService.loadRole(currentRole);
             String roleName = userService.loadRole(user.getEmail());
             if (!roleName.equals(user.getEmail())) {
                 response.sendError(HttpStatus.FORBIDDEN.value(), "Role is incorrect!");

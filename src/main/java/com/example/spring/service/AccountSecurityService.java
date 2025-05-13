@@ -1,20 +1,21 @@
 package com.example.spring.service;
 
 import com.example.spring.entity.User;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
 @Service
 public class AccountSecurityService {
-    private static final int MAX_FAILED_ATTEMPTS = 3;
-    private static final byte LOCK_DURATION_HOURS = 1;
+    @Value("${security.account.max_failed_attempts}")
+    private byte max_failed_attempts;
+    @Value("${security.account.lock_duration_hours}")
+    private byte lock_duration_hours;
 
     public void IncrementFailedAttempts(User user) {
         user.setFailedAttempts(user.getFailedAttempts() + 1);
-        if (user.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
+        if (user.getFailedAttempts() >= max_failed_attempts) {
             user.setLockTime(LocalDateTime.now());
         }
     }
@@ -25,7 +26,7 @@ public class AccountSecurityService {
         if (user.getLockTime() == null) {
             return false;
         }
-        LocalDateTime banLocalDateTime = user.getLockTime().plusHours(LOCK_DURATION_HOURS);
+        LocalDateTime banLocalDateTime = user.getLockTime().plusHours(lock_duration_hours);
         boolean isLocked = LocalDateTime.now().isAfter(banLocalDateTime);
         if (isLocked) {
             resetFailedAttempts(user);
