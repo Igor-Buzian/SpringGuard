@@ -5,7 +5,11 @@ import com.example.spring.entity.User;
 import com.example.spring.exeption.InfoExeption;
 import com.example.spring.repository.UserRepository;
 import com.example.spring.utils.JwtTokenUtils;
+import io.jsonwebtoken.Header;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +25,7 @@ public class CreateService {
     private  final ValidationService validationService;
     private  final JwtTokenUtils jwtTokenUtils;
 
-    public ResponseEntity<?> createNewUser(@RequestBody RegisterDtoValues registerDtoValues){
+    public ResponseEntity<?> createNewUser(@RequestBody RegisterDtoValues registerDtoValues, HttpServletResponse response){
         if(userRepository.existsByEmail(registerDtoValues.getEmail())){
             return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "This user is exist!"), HttpStatus.FORBIDDEN);
         }
@@ -36,6 +40,13 @@ public class CreateService {
         }
         String token = jwtTokenUtils.generateToken(user);
         userRepository.save(user);
-        return  ResponseEntity.ok(token);
+        Cookie cookie = new Cookie("New_User", token);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/success");
+        return new ResponseEntity<>(headers, HttpStatus.SEE_OTHER);
     }
 }

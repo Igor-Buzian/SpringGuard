@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Login</title>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <style>
+    #recaptcha-container {
+      display: none; /* Скрываем виджет по умолчанию */
+    }
+  </style>
+</head>
+<body>
+<h2>Login</h2>
+<form th:action="@{/auth/v1/authentication}" method="post">
+  <input type="email" name="email" placeholder="Email" required/><br/>
+  <input type="password" name="password" placeholder="Password" required/><br/>
+  <div id="recaptcha-container" class="g-recaptcha" data-sitekey="6Lcjd0ArAAAAAAL3X5sQAsNtBpjr14Bqumz4cAy4"></div><br/>
+  <button type="submit">Login</button>
+</form>
+<div th:if="${param.error}">
+  <p style="color:red">
+    <span th:if="${param.error[0] == 'incorrect'}">Неправильный email или пароль.</span>
+    <span th:if="${param.error[0] == 'banned'}">Этот аккаунт заблокирован.</span>
+    <span th:if="${param.error[0] == 'blocked'}">Вы временно заблокированы. Попробуйте позже.</span>
+    <span th:if="${param.error[0] == 'captcha'}">Не пройдена проверка капчи.</span>
+    <span th:if="${param.error[0] == 'account_locked'}">Аккаунт заблокирован. Попробуйте позже.</span>
+    <span th:unless="${param.error[0] == 'incorrect' or param.error[0] == 'banned' or param.error[0] == 'blocked' or param.error[0] == 'captcha' or param.error[0] == 'account_locked'}" th:text="${'Ошибка аутентификации: ' + param.error[0]}"></span>
+  </p>
+</div>
+
+<script th:inline="javascript">
+  /*<![CDATA[*/
+  const recaptchaContainer = document.getElementById('recaptcha-container');
+  // Теперь получаем значение из Thymeleaf модели
+  const maxAttemptsBeforeCaptcha = /*[[${captchaThreshold}]]*/ 3;
+
+  function checkAttempts() {
+    fetch('/auth/v1/login-attempts')
+            .then(response => response.json())
+            .then(data => {
+              if (data.attempts >= maxAttemptsBeforeCaptcha) {
+                recaptchaContainer.style.display = 'block';
+              } else {
+                recaptchaContainer.style.display = 'none';
+              }
+            })
+            .catch(error => {
+              console.error('Ошибка при получении количества попыток:', error);
+            });
+  }
+
+  checkAttempts();
+
+  document.querySelector('form').addEventListener('submit', function() {
+    // Дополнительная проверка перед отправкой, если необходимо
+  });
+  /*]]>*/
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@ import com.example.spring.dto.RegisterDtoValues;
 import com.example.spring.service.AuthService;
 import com.example.spring.service.CreateService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,16 +14,27 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/auth/v1")
 public class AuthController {
-    private  final AuthService authController;
+    private  final AuthService authService;
     private  final CreateService createNewUser;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterDtoValues registerDtoValues){
-        return createNewUser.createNewUser(registerDtoValues);
+    public ResponseEntity<?> register(@RequestBody RegisterDtoValues registerDtoValues, HttpServletResponse response){
+        return createNewUser.createNewUser(registerDtoValues, response);
     }
     @PostMapping("/authentication")
-    public ResponseEntity<?> auth(@RequestBody JwtRequest jwtRequest, HttpServletRequest request){
-        return authController.authUser(jwtRequest, request);
+    public ResponseEntity<?> auth(JwtRequest jwtRequest, HttpServletResponse response, HttpServletRequest request , @RequestParam(name = "g-recaptcha-response", required = false) String captchaResponse)
+    {
+        return authService.authUser(jwtRequest, request,response,captchaResponse);
+    }
+    @GetMapping("/login-attempts")
+    public ResponseEntity<?> getLoginAttempts(HttpServletRequest request) {
+       return authService.getLoginAttempts(request);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response)
+    {
+        return authService.logout(response);
     }
     @GetMapping("/admin1")
     public String admin(){

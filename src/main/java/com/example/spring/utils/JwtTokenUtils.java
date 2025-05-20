@@ -36,6 +36,15 @@ public String generateToken(User user){
             .signWith(SignatureAlgorithm.HS512,secret)
             .compact();
 }
+    public String getRoleFromToken(String token){
+        return Jwts
+                .parser()
+                .setSigningKey(secret)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role", String.class);
+    }
 
 public String getLogin(String token){
     return Jwts

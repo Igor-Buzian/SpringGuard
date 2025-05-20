@@ -2,6 +2,7 @@ package com.example.spring.service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 @Service
+@RequiredArgsConstructor
 public class LoginAttemptService {
     @Value("${security.login.max-attempts}")
     private byte count_attempts;
@@ -19,6 +21,9 @@ public class LoginAttemptService {
     private byte clear_old_entities;
     @Value("${security.login.time_for_save_ip}")
     private byte time_for_save_ip;
+    @Value("${security.login.capthca_count}")
+    private byte capthca_count;
+    private final  CaptchaService captchaService;
     Map<String, AttemptInfo> attempts = new ConcurrentHashMap<>();
     ScheduledExecutorService cleaner;
 
@@ -39,6 +44,28 @@ public class LoginAttemptService {
         }
 
         attempts.put(ip, info);
+    }
+
+
+    public boolean validateCaptcha(String ip, String captchaResponse) {
+        AttemptInfo info = attempts.get(ip);
+        if( info == null){
+            return true;
+        }
+        else if(info.attempts < capthca_count){
+            return true;
+        }
+        else
+        {
+            if( captchaService.isCaptchaValid(captchaResponse)){
+                return  true;
+            }
+            else {
+                info.attempts = capthca_count;
+                info.lastAttempt = LocalDateTime.now().plusMinutes(block_time_in_minutes);
+                return false;
+            }
+        }
     }
 
     public boolean isBloked(String ip) {
@@ -68,6 +95,11 @@ public class LoginAttemptService {
             return entry.getValue().lastAttempt.isBefore(LocalDateTime.now());
         });
 
+    }
+
+    public int AttemptsCount(String ip){
+        AttemptInfo attemptInfo =attempts.get(ip);
+        return attemptInfo ==null ? 0 : attemptInfo.attempts;
     }
 
     @PreDestroy
