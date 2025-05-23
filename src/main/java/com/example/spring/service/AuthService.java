@@ -46,47 +46,57 @@ public class AuthService {
     }
 
     public ResponseEntity<?> authUser(@RequestBody JwtRequest jwtRequest, HttpServletRequest request, HttpServletResponse response, @RequestParam(name = "g-recaptcha-response", required = false) String captchaResponse) {
+
+        //if login not exist
         if(!userRepository.existsByEmail(jwtRequest.getEmail())){
 
             String ip = request.getRemoteAddr();
             loginAttemptService.loginFailed(ip);
             if (loginAttemptService.isBloked(ip)) {
-                return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"),HttpStatus.FORBIDDEN);
+                //  return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"),HttpStatus.FORBIDDEN);
+                return  ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location", "/login?errpr=ip_banned").build();
             }
 
-            return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password or login is Incorrect!"),HttpStatus.FORBIDDEN);
+           // return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password or login is Incorrect!"),HttpStatus.FORBIDDEN);
+            return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=incorrect").build();
         }
 
         User user = userService.loadLogin(jwtRequest.getEmail());
 
         if(!user.isEnabled()){
-            return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "This account was Baned"),HttpStatus.FORBIDDEN);
+            //return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "This account was Baned"),HttpStatus.FORBIDDEN);
+            return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=account_baned").build();
         }
 
         String ip = request.getRemoteAddr();
 
-        if(loginAttemptService.isBloked(ip)) return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"),HttpStatus.FORBIDDEN);
+        if(loginAttemptService.isBloked(ip)) return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=ip_banned").build();
 
-        if(!loginAttemptService.validateCaptcha(ip, captchaResponse))     return  new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"), HttpStatus.FORBIDDEN);
+        if(!loginAttemptService.validateCaptcha(ip, captchaResponse))   return  ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=ip_banned").build();
+
         if(!passwordEncoder.matches(jwtRequest.getPassword(), user.getPassword())){
             accountSecurityService.IncrementFailedAttempts(user);
             if(accountSecurityService.isAccountLocked(user)){
-                return  new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"), HttpStatus.FORBIDDEN);
+                return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","login?error=account_banned").build();
 
             }
             else {
-                return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password or login is Incorrect! You Have "+user.getFailedAttempts()+"/3 attempts"), HttpStatus.FORBIDDEN);
+                int attemptsLeft = loginAttemptService.getCount_attempts() - user.getFailedAttempts();
+                return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=incorrect&attempt="+attemptsLeft).build();
             }
         }
+
+        accountSecurityService.resetFailedAttempts(user);
         loginAttemptService.loginSuccess(ip);
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 jwtRequest.getEmail(), jwtRequest.getPassword()
         );
+
         SecurityContextHolder.getContext().setAuthentication(auth);
         String token = jwtTokenUtils.generateToken(user);
 
-        Cookie cookie = new Cookie("New_User",token);
+        Cookie cookie = new Cookie("Auth_cookie",token);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         response.addCookie(cookie);

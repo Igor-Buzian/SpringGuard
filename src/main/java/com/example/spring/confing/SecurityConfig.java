@@ -29,10 +29,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/login",
+                                "/login**",
                                 "/register",
                                 "/auth/v1/**"
                         ).permitAll()
-                        .requestMatchers("/success").hasAuthority("Role_User")// Требуем аутентификацию для /success
+                        .requestMatchers("/success").hasRole("USER") // Требуем аутентификацию для /success
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

@@ -2,6 +2,7 @@ package com.example.spring.service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import java.util.concurrent.*;
 @Service
 @RequiredArgsConstructor
 public class LoginAttemptService {
+    @Getter
     @Value("${security.login.max-attempts}")
     private byte count_attempts;
     @Value("${security.login.block_time_in_minutes}")
@@ -23,7 +25,9 @@ public class LoginAttemptService {
     private byte time_for_save_ip;
     @Value("${security.login.capthca_count}")
     private byte capthca_count;
+
     private final  CaptchaService captchaService;
+
     Map<String, AttemptInfo> attempts = new ConcurrentHashMap<>();
     ScheduledExecutorService cleaner;
 

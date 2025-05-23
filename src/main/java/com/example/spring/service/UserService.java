@@ -19,7 +19,10 @@ public class UserService {
             return userRepository.findByEmail(login)
                     .orElseThrow(() -> new UsernameNotFoundException("Not found user with name "+login));
         }
-        public String loadRole(String roleName){
-            return  roleRepository.findByName(roleName).orElseThrow(()->new UsernameNotFoundException("Not found role with name "+roleName)).getName();
-        }
+    public String loadRole(String roleName){
+        return roleRepository.findByName(roleName)
+                .orElseThrow(() -> new UsernameNotFoundException("Role not found with name: " + roleName))
+                .getName();
+    }
+
 }

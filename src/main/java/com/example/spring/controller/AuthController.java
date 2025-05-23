@@ -18,8 +18,8 @@ public class AuthController {
     private  final CreateService createNewUser;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterDtoValues registerDtoValues, HttpServletResponse response){
-        return createNewUser.createNewUser(registerDtoValues, response);
+    public ResponseEntity<?> register(@RequestBody RegisterDtoValues registerDtoValues, HttpServletResponse response, HttpServletRequest request, @RequestParam(name = "g-recaptcha-response", required = false) String captchaResponse){
+        return createNewUser.createNewUser(registerDtoValues, response, request,captchaResponse);
     }
     @PostMapping("/authentication")
     public ResponseEntity<?> auth(JwtRequest jwtRequest, HttpServletResponse response, HttpServletRequest request , @RequestParam(name = "g-recaptcha-response", required = false) String captchaResponse)

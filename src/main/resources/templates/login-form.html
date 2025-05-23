@@ -4,55 +4,125 @@
   <title>Login</title>
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .error-message {
+      color: red;
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid red;
+      border-radius: 4px;
+      background-color: #ffeeee;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
     #recaptcha-container {
-      display: none; /* Скрываем виджет по умолчанию */
+      margin: 15px 0;
+      display: none;
     }
   </style>
 </head>
 <body>
 <h2>Login</h2>
-<form th:action="@{/auth/v1/authentication}" method="post">
-  <input type="email" name="email" placeholder="Email" required/><br/>
-  <input type="password" name="password" placeholder="Password" required/><br/>
-  <div id="recaptcha-container" class="g-recaptcha" data-sitekey="6Lcjd0ArAAAAAAL3X5sQAsNtBpjr14Bqumz4cAy4"></div><br/>
+
+<!-- Отображение сообщений об ошибках -->
+<div th:if="${errorMessage}" class="error-message" th:text="${errorMessage}"></div>
+
+<form id="loginForm">
+  <input type="email" name="email" placeholder="Email" required/>
+  <input type="password" name="password" placeholder="Password" required/>
+
+  <div id="recaptcha-container" class="g-recaptcha"
+       data-sitekey="6Lcjd0ArAAAAAAL3X5sQAsNtBpjr14Bqumz4cAy4"></div>
+
   <button type="submit">Login</button>
 </form>
-<div th:if="${param.error}">
-  <p style="color:red">
-    <span th:if="${param.error[0] == 'incorrect'}">Неправильный email или пароль.</span>
-    <span th:if="${param.error[0] == 'banned'}">Этот аккаунт заблокирован.</span>
-    <span th:if="${param.error[0] == 'blocked'}">Вы временно заблокированы. Попробуйте позже.</span>
-    <span th:if="${param.error[0] == 'captcha'}">Не пройдена проверка капчи.</span>
-    <span th:if="${param.error[0] == 'account_locked'}">Аккаунт заблокирован. Попробуйте позже.</span>
-    <span th:unless="${param.error[0] == 'incorrect' or param.error[0] == 'banned' or param.error[0] == 'blocked' or param.error[0] == 'captcha' or param.error[0] == 'account_locked'}" th:text="${'Ошибка аутентификации: ' + param.error[0]}"></span>
-  </p>
-</div>
 
 <script th:inline="javascript">
   /*<![CDATA[*/
-  const recaptchaContainer = document.getElementById('recaptcha-container');
-  // Теперь получаем значение из Thymeleaf модели
-  const maxAttemptsBeforeCaptcha = /*[[${captchaThreshold}]]*/ 3;
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('loginForm');
+    const recaptchaContainer = document.getElementById('recaptcha-container');
+    const maxAttemptsBeforeCaptcha = 3; ///*[[${captchaThreshold}]]*/ 3;
 
-  function checkAttempts() {
-    fetch('/auth/v1/login-attempts')
-            .then(response => response.json())
-            .then(data => {
-              if (data.attempts >= maxAttemptsBeforeCaptcha) {
-                recaptchaContainer.style.display = 'block';
-              } else {
-                recaptchaContainer.style.display = 'none';
-              }
-            })
-            .catch(error => {
-              console.error('Ошибка при получении количества попыток:', error);
-            });
-  }
+    // Проверяем количество попыток при загрузке страницы
+    checkAttempts();
 
-  checkAttempts();
+    // Обработчик отправки формы
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
 
-  document.querySelector('form').addEventListener('submit', function() {
-    // Дополнительная проверка перед отправкой, если необходимо
+      const formData = new FormData(form);
+      const email = formData.get('email');
+      const password = formData.get('password');
+      const captchaResponse = formData.get('g-recaptcha-response');
+
+      // Создаем URLSearchParams для отправки данных
+      const params = new URLSearchParams();
+      params.append('email', email);
+      params.append('password', password);
+      if (captchaResponse) {
+        params.append('g-recaptcha-response', captchaResponse);
+      }
+
+      // Отправляем запрос
+      fetch('/auth/v1/authentication', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params
+      })
+              .then(response => {
+                if (response.redirected) {
+                  window.location.href = response.url;
+                }
+                return response;
+              })
+              .catch(error => {
+                console.error('Error:', error);
+              });
+    });
+
+    // Функция проверки попыток входа
+    function checkAttempts() {
+      fetch('/auth/v1/login-attempts')
+              .then(response => response.json())
+              .then(data => {
+                const attempts = data.attempts || 0;
+
+                // Показываем CAPTCHA если попыток больше лимита
+                if (attempts >= maxAttemptsBeforeCaptcha) {
+                  recaptchaContainer.style.display = 'block';
+                }
+              })
+              .catch(error => {
+                console.error('Error checking attempts:', error);
+              });
+    }
   });
   /*]]>*/
 </script>
