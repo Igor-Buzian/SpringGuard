@@ -31,6 +31,7 @@ public class SecurityConfig {
                                 "/login",
                                 "/login**",
                                 "/register",
+                                "/register**",
                                 "/auth/v1/**"
                         ).permitAll()
                         .requestMatchers("/success").hasRole("USER") // Требуем аутентификацию для /success

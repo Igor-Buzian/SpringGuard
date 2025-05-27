@@ -17,9 +17,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
@@ -34,28 +36,32 @@ public class CreateService {
     private  final JwtTokenUtils jwtTokenUtils;
     private  final LoginAttemptService loginAttemptService;
 
-    public ResponseEntity<?> createNewUser(@RequestBody RegisterDtoValues registerDtoValues, HttpServletResponse response, HttpServletRequest request, @RequestParam(name = "g-recaptcha-response", required = false) String captchaResponse){
+    public ResponseEntity<?> createNewUser(RegisterDtoValues registerDtoValues, HttpServletResponse response, HttpServletRequest request, @RequestParam(name = "g-recaptcha-response", required = false) String captchaResponse){
+
         if(userRepository.existsByEmail(registerDtoValues.getEmail())){
             String ip = request.getRemoteAddr();
            if(loginAttemptService.isBloked(ip)) return ResponseEntity.status(HttpStatus.FORBIDDEN).header("Location", "/register?error=ip_banned").build();
            if(!loginAttemptService.validateCaptcha(ip, captchaResponse)) return ResponseEntity.status(HttpStatus.FORBIDDEN).header("Location", "/register?error=ip_banned").build();
            return ResponseEntity.status(HttpStatus.FORBIDDEN).header("Location","/register?error=exist_mail").build();
         }
+
         User user = new User();
         user.setEmail(registerDtoValues.getEmail());
         user.setPassword(passwordEncoder.encode(registerDtoValues.getPassword()));
         user.setUpdatedAt(LocalDateTime.now());
         user.setUsername(registerDtoValues.getUsername());
-        //  if(!registerDtoValues.getConfirmPassword().equals(registerDtoValues.getPassword())){
+
         if(!validationService.validationPassword(registerDtoValues.getPassword(), registerDtoValues.getConfirmPassword())){
             return ResponseEntity.status(HttpStatus.FORBIDDEN).header("Location","/register?error=different_password").build();
         }
         Role defaultRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new IllegalStateException("Default role 'ROLE_USER' not found in database! Please ensure it's inserted."));
 
+
         user.setRoles(new HashSet<>(Collections.singletonList(defaultRole)));
         String token = jwtTokenUtils.generateToken(user);
         userRepository.save(user);
+
         Cookie cookie = new Cookie("Auth_cookie", token);
         cookie.setPath("/");
         cookie.setHttpOnly(true);

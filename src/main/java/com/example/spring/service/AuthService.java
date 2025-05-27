@@ -2,7 +2,6 @@ package com.example.spring.service;
 
 import com.example.spring.dto.JwtRequest;
 import com.example.spring.entity.User;
-import com.example.spring.exeption.InfoExeption;
 import com.example.spring.repository.UserRepository;
 import com.example.spring.utils.JwtTokenUtils;
 import jakarta.servlet.http.Cookie;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 
 @Service
@@ -31,6 +29,8 @@ public class AuthService {
     private final  AccountSecurityService accountSecurityService;
     private  final  LoginAttemptService loginAttemptService;
     private final UserRepository userRepository;
+    private  final CaptchaService captchaService;
+    private final LoginAttemptsCountService loginAttemptsCountService;
 
     public ResponseEntity<?>logout(HttpServletResponse response)
     {
@@ -56,9 +56,9 @@ public class AuthService {
                 //  return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "You have now ban for few time. Try some later"),HttpStatus.FORBIDDEN);
                 return  ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location", "/login?errpr=ip_banned").build();
             }
-
+            int attemptsLeft = loginAttemptService.getCount_attempts() - loginAttemptService.AttemptsCount(ip);
            // return new ResponseEntity<>(new InfoExeption(HttpStatus.FORBIDDEN.value(), "Password or login is Incorrect!"),HttpStatus.FORBIDDEN);
-            return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=incorrect").build();
+            return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=incorrect&attempt="+attemptsLeft).build();
         }
 
         User user = userService.loadLogin(jwtRequest.getEmail());
@@ -75,19 +75,17 @@ public class AuthService {
         if(!loginAttemptService.validateCaptcha(ip, captchaResponse))   return  ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=ip_banned").build();
 
         if(!passwordEncoder.matches(jwtRequest.getPassword(), user.getPassword())){
-            accountSecurityService.IncrementFailedAttempts(user);
             if(accountSecurityService.isAccountLocked(user)){
                 return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","login?error=account_banned").build();
-
             }
             else {
-                int attemptsLeft = loginAttemptService.getCount_attempts() - user.getFailedAttempts();
-                return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=incorrect&attempt="+attemptsLeft).build();
+                accountSecurityService.IncrementFailedAttempts(user, captchaService.isCaptchaValid(captchaResponse));
+                int attemptsLeft = accountSecurityService.getMax_failed_attempts() - user.getFailedAttempts();
+                return ResponseEntity.status(HttpStatus.SEE_OTHER).header("Location","/login?error=wrong&attempt="+attemptsLeft).build();
             }
         }
 
-        accountSecurityService.resetFailedAttempts(user);
-        loginAttemptService.loginSuccess(ip);
+        loginSusses(user,ip);
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 jwtRequest.getEmail(), jwtRequest.getPassword()
@@ -107,9 +105,16 @@ public class AuthService {
 
     }
 
+    private void loginSusses(User user, String ip)
+    {
+        loginAttemptsCountService.loginAttemptsCount = 0;
+        accountSecurityService.resetFailedAttempts(user);
+        loginAttemptService.loginSuccess(ip);
+    }
+
+
     public ResponseEntity<?> getLoginAttempts( HttpServletRequest request)
     {
-        String ip = request.getRemoteAddr();
-        return ResponseEntity.ok(Map.of("attempts", loginAttemptService.AttemptsCount(ip)));
+        return ResponseEntity.ok(Map.of("attempts", loginAttemptsCountService.loginAttemptsCount++));
     }
 }

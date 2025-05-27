@@ -13,9 +13,13 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AccountSecurityService {
     @Value("${security.account.max_failed_attempts}")
-    private byte max_failed_attempts;
+    private int max_failed_attempts;
     @Value("${security.account.lock_duration_hours}")
     private byte lock_duration_hours;
+
+    public int getMax_failed_attempts() {
+        return max_failed_attempts;
+    }
 
     private final UserRepository userRepository;
 
@@ -34,11 +38,14 @@ public class AccountSecurityService {
         }
     }
 
+
     @Transactional
-    public void IncrementFailedAttempts(User user) {
+    public void IncrementFailedAttempts(User user, boolean isCaptchaValid) {
         user.setFailedAttempts(user.getFailedAttempts() + 1);
-        if (user.getFailedAttempts() >= max_failed_attempts) {
+        if (user.getFailedAttempts() >= max_failed_attempts && isCaptchaValid == false) {
             user.setLockTime(LocalDateTime.now().plusHours(lock_duration_hours));
+        } else if (isCaptchaValid == true) {
+            user.setFailedAttempts(max_failed_attempts -1);
         }
         userRepository.save(user);
     }

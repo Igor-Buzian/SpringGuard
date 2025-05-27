@@ -18,6 +18,13 @@
             border-radius: 4px;
             background-color: #ffeeee;
         }
+        .error-field { /* Добавьте стиль для полей с ошибками */
+            border-color: red;
+        }
+        .field-error { /* Стиль для сообщений об ошибках под полем */
+            color: red;
+            font-size: 0.9em;
+        }
         form {
             display: flex;
             flex-direction: column;
@@ -41,7 +48,8 @@
         }
         #recaptcha-container {
             margin: 15px 0;
-            display: none;
+            /* Изменено на 'block' по умолчанию, чтобы капча всегда была видна */
+            display: block;
         }
     </style>
 </head>
@@ -50,11 +58,26 @@
 
 <div th:if="${errorMessage}" class="error-message" th:text="${errorMessage}"></div>
 
-<form id="loginForm">
-    <input type="text" name="username"placeholder="Username" required/>
-    <input type="email" name="email" placeholder="Email" required/>
-    <input type="password" name="password" placeholder="Password" required/>
-    <input type="password" name="ConfirmPassword" placeholder="Confirm password" required/>
+<form id="registerForm" th:object="${registerDtoValues}">
+    <input type="text" th:field="*{username}" placeholder="Username" required
+           th:class="${#fields.hasErrors('username') ? 'error-field' : ''}"/>
+    <span th:if="${#fields.hasErrors('username')}" th:errors="*{username}" class="field-error">Username error!</span>
+
+    <input type="email" th:field="*{email}" placeholder="Email" required
+           th:class="${#fields.hasErrors('email') ? 'error-field' : ''}"/>
+    <span th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="field-error">Email error!</span>
+
+    <input type="password" th:field="*{password}" placeholder="Password" required
+           th:class="${#fields.hasErrors('password') ? 'error-field' : ''}"/>
+    <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="field-error">Password error!</span>
+
+    <input type="password" th:field="*{confirmPassword}" placeholder="Confirm password" required
+           th:class="${#fields.hasErrors('confirmPassword') ? 'error-field' : ''}"/>
+    <span th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}" class="field-error">Confirm Password error!</span>
+
+    <span th:if="${#fields.hasGlobalErrors()}" th:each="error : ${#fields.globalErrors()}" th:text="${error}" class="field-error"></span>
+
+
     <div id="recaptcha-container" class="g-recaptcha"
          data-sitekey="6Lcjd0ArAAAAAAL3X5sQAsNtBpjr14Bqumz4cAy4"></div>
 
@@ -64,35 +87,27 @@
 <script th:inline="javascript">
     /*<![CDATA[*/
     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('loginForm');
+        const form = document.getElementById('registerForm');
         const recaptchaContainer = document.getElementById('recaptcha-container');
-        const maxAttemptsBeforeCaptcha = 3; ///*[[${captchaThreshold}]]*/ 3;
 
-        // Проверяем количество попыток при загрузке страницы
-        checkAttempts();
-
-        // Обработчик отправки формы
         form.addEventListener('submit', function(e) {
             e.preventDefault();
 
             const formData = new FormData(form);
-            const username = formData.get('text');
+            const username = formData.get('username');
             const email = formData.get('email');
             const password = formData.get('password');
-            const ConfirmPassword = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
             const captchaResponse = formData.get('g-recaptcha-response');
 
-            // Создаем URLSearchParams для отправки данных
             const params = new URLSearchParams();
             params.append('username', username);
             params.append('email', email);
             params.append('password', password);
-            params.append('ConfirmPassword', ConfirmPassword);
-            if (captchaResponse) {
-                params.append('g-recaptcha-response', captchaResponse);
-            }
+            params.append('confirmPassword', confirmPassword);
+            params.append('g-recaptcha-response', captchaResponse);
 
-            // Отправляем запрос
+
             fetch('/auth/v1/register', {
                 method: 'POST',
                 headers: {
@@ -103,6 +118,8 @@
                 .then(response => {
                     if (response.redirected) {
                         window.location.href = response.url;
+                    } else if (!response.ok) {
+                        console.error('Server responded with an error:', response.status);
                     }
                     return response;
                 })
@@ -110,23 +127,6 @@
                     console.error('Error:', error);
                 });
         });
-
-        // Функция проверки попыток входа
-        function checkAttempts() {
-            fetch('/auth/v1/login-attempts')
-                .then(response => response.json())
-                .then(data => {
-                    const attempts = data.attempts || 0;
-
-                    // Показываем CAPTCHA если попыток больше лимита
-                    if (attempts >= maxAttemptsBeforeCaptcha) {
-                        recaptchaContainer.style.display = 'block';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking attempts:', error);
-                });
-        }
     });
     /*]]>*/
 </script>

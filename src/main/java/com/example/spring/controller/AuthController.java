@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth/v1")
@@ -18,7 +20,7 @@ public class AuthController {
     private  final CreateService createNewUser;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterDtoValues registerDtoValues, HttpServletResponse response, HttpServletRequest request, @RequestParam(name = "g-recaptcha-response", required = false) String captchaResponse){
+    public ResponseEntity<?> register(@Valid @ModelAttribute RegisterDtoValues registerDtoValues, HttpServletResponse response, HttpServletRequest request, @RequestParam(name = "g-recaptcha-response", required = false) String captchaResponse){
         return createNewUser.createNewUser(registerDtoValues, response, request,captchaResponse);
     }
     @PostMapping("/authentication")
